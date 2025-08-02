@@ -1,10 +1,10 @@
 package dev.hc.convert.parser;
 
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.exception.ParsingException;
-
 import java.io.File;
 import java.io.InputStream;
+
+import dev.hc.convert.exception.ParsingException;
+import dev.hc.convert.model.OutlineDocument;
 
 /**
  * 文件解析器接口
@@ -22,7 +22,7 @@ public interface FileParser {
      * @return 解析后的大纲文档
      * @throws ParsingException 解析异常
      */
-    OutlineDocument parse(File file) throws ParsingException;
+    OutlineDocument parse(File file);
     
     /**
      * 从输入流解析为大纲文档
@@ -32,7 +32,7 @@ public interface FileParser {
      * @return 解析后的大纲文档
      * @throws ParsingException 解析异常
      */
-    OutlineDocument parse(InputStream inputStream, String filename) throws ParsingException;
+    OutlineDocument parse(InputStream inputStream, String filename);
     
     /**
      * 从字节数组解析为大纲文档
@@ -42,7 +42,7 @@ public interface FileParser {
      * @return 解析后的大纲文档
      * @throws ParsingException 解析异常
      */
-    OutlineDocument parse(byte[] data, String filename) throws ParsingException;
+    OutlineDocument parse(byte[] data, String filename);
     
     /**
      * 获取支持的文件扩展名列表

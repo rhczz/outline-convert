@@ -1,22 +1,22 @@
 package dev.hc.convert.engine;
 
-import dev.hc.convert.FileType;
-import dev.hc.convert.converter.FormatConverter;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ConversionFailureException;
-import dev.hc.convert.factory.ConverterFactory;
-import dev.hc.convert.factory.ParserFactory;
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.parser.FileParser;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import dev.hc.convert.FileType;
+import dev.hc.convert.converter.FormatConverter;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.factory.ConverterFactory;
+import dev.hc.convert.factory.ParserFactory;
+import dev.hc.convert.model.OutlineDocument;
+import dev.hc.convert.parser.FileParser;
 
 /**
  * 文件格式转换引擎
@@ -135,9 +135,8 @@ public final class ConvertEngine {
          * 
          * @param inputFile 输入文件
          * @param outputFile 输出文件
-         * @throws ConversionFailureException 转换失败异常
          */
-        public void convert(File inputFile, File outputFile) throws ConversionFailureException {
+        public void convert(File inputFile, File outputFile) {
             validateInputFile(inputFile);
             
             try {
@@ -161,9 +160,8 @@ public final class ConvertEngine {
          * 
          * @param inputFile 输入文件
          * @return 输出文件
-         * @throws ConversionFailureException 转换失败异常
          */
-        public File convert(File inputFile) throws ConversionFailureException {
+        public File convert(File inputFile) {
             validateInputFile(inputFile);
             
             // 生成输出文件名
@@ -180,9 +178,8 @@ public final class ConvertEngine {
          * 
          * @param inputFile 输入文件
          * @param outputPath 输出路径
-         * @throws ConversionFailureException 转换失败异常
          */
-        public void convert(File inputFile, String outputPath) throws ConversionFailureException {
+        public void convert(File inputFile, String outputPath) {
             convert(inputFile, new File(outputPath));
         }
         
@@ -191,9 +188,8 @@ public final class ConvertEngine {
          * 
          * @param inputFile 输入文件
          * @param outputStream 输出流
-         * @throws ConversionFailureException 转换失败异常
          */
-        public void convertToStream(File inputFile, OutputStream outputStream) throws ConversionFailureException {
+        public void convertToStream(File inputFile, OutputStream outputStream) {
             validateInputFile(inputFile);
             
             try {
@@ -217,9 +213,8 @@ public final class ConvertEngine {
          * 
          * @param inputFile 输入文件
          * @return 转换后的字节数组
-         * @throws ConversionFailureException 转换失败异常
          */
-        public byte[] convertToBytes(File inputFile) throws ConversionFailureException {
+        public byte[] convertToBytes(File inputFile) {
             validateInputFile(inputFile);
             
             try {
@@ -244,9 +239,8 @@ public final class ConvertEngine {
          * @param inputStream 输入流
          * @param filename 输入文件名（用于格式推断）
          * @param outputFile 输出文件
-         * @throws ConversionFailureException 转换失败异常
          */
-        public void convert(InputStream inputStream, String filename, File outputFile) throws ConversionFailureException {
+        public void convert(InputStream inputStream, String filename, File outputFile) {
             validateInputStream(inputStream);
             
             try {
@@ -271,9 +265,8 @@ public final class ConvertEngine {
          * @param data 输入数据
          * @param filename 输入文件名（用于格式推断）
          * @param outputFile 输出文件
-         * @throws ConversionFailureException 转换失败异常
          */
-        public void convert(byte[] data, String filename, File outputFile) throws ConversionFailureException {
+        public void convert(byte[] data, String filename, File outputFile) {
             validateData(data);
             
             try {

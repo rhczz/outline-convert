@@ -1,13 +1,17 @@
 package dev.hc.convert.converter.impl;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
 import dev.hc.convert.converter.FormatConverter;
 import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ConvertException;
 import dev.hc.convert.model.OutlineDocument;
 import dev.hc.convert.model.OutlineNode;
-
-import java.io.*;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Markdown格式转换器
@@ -21,7 +25,7 @@ public class MarkdownFormatConverter implements FormatConverter {
     private static final String LINE_SEPARATOR = System.lineSeparator();
     
     @Override
-    public void convert(OutlineDocument document, File outputFile) throws ConvertException {
+    public void convert(OutlineDocument document, File outputFile) {
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8))) {
             
@@ -36,7 +40,7 @@ public class MarkdownFormatConverter implements FormatConverter {
     }
     
     @Override
-    public void convert(OutlineDocument document, OutputStream outputStream) throws ConvertException {
+    public void convert(OutlineDocument document, OutputStream outputStream) {
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
             
@@ -51,7 +55,7 @@ public class MarkdownFormatConverter implements FormatConverter {
     }
     
     @Override
-    public byte[] convertToBytes(OutlineDocument document) throws ConvertException {
+    public byte[] convertToBytes(OutlineDocument document) {
         try {
             String markdownContent = convertToMarkdown(document);
             return markdownContent.getBytes(StandardCharsets.UTF_8);

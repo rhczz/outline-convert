@@ -1,17 +1,12 @@
 package dev.hc.convert.converter.impl;
 
-import org.dom4j.Document;
-import org.dom4j.DocumentHelper;
-import org.dom4j.Element;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.XMLWriter;
-import dev.hc.convert.converter.FormatConverter;
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.model.OutlineNode;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ConvertException;
-
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -19,6 +14,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.XMLWriter;
+
+import dev.hc.convert.converter.FormatConverter;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.model.OutlineDocument;
+import dev.hc.convert.model.OutlineNode;
 
 /**
  * OPML格式转换器
@@ -35,7 +41,7 @@ public class OpmlFormatConverter implements FormatConverter {
                          .withZone(ZoneId.systemDefault());
     
     @Override
-    public void convert(OutlineDocument document, File outputFile) throws ConvertException {
+    public void convert(OutlineDocument document, File outputFile) {
         try (FileOutputStream fos = new FileOutputStream(outputFile);
              OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
             
@@ -50,7 +56,7 @@ public class OpmlFormatConverter implements FormatConverter {
     }
     
     @Override
-    public void convert(OutlineDocument document, OutputStream outputStream) throws ConvertException {
+    public void convert(OutlineDocument document, OutputStream outputStream) {
         try (OutputStreamWriter osw = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
             Document opmlDoc = convertToOpmlDocument(document);
             writeXmlDocument(opmlDoc, osw);
@@ -62,7 +68,7 @@ public class OpmlFormatConverter implements FormatConverter {
     }
     
     @Override
-    public byte[] convertToBytes(OutlineDocument document) throws ConvertException {
+    public byte[] convertToBytes(OutlineDocument document) {
         try {
             Document opmlDoc = convertToOpmlDocument(document);
             
@@ -72,7 +78,7 @@ public class OpmlFormatConverter implements FormatConverter {
             }
             
             return baos.toByteArray();
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw ConversionExceptionFactory.conversionFailed("Failed to convert to OPML", e);
         }
     }

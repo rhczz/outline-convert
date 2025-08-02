@@ -1,19 +1,11 @@
 package dev.hc.convert.converter.impl;
 
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
-import org.dom4j.Document;
-import org.dom4j.DocumentHelper;
-import org.dom4j.Element;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.XMLWriter;
-import dev.hc.convert.converter.FormatConverter;
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.model.OutlineNode;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ConvertException;
-
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -21,6 +13,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
+
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.XMLWriter;
+
+import dev.hc.convert.converter.FormatConverter;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.model.OutlineDocument;
+import dev.hc.convert.model.OutlineNode;
 
 /**
  * XMind格式转换器
@@ -37,7 +42,7 @@ public class XMindFormatConverter implements FormatConverter {
                          .withZone(ZoneId.of("UTC"));
     
     @Override
-    public void convert(OutlineDocument document, File outputFile) throws ConvertException {
+    public void convert(OutlineDocument document, File outputFile) {
         try (FileOutputStream fos = new FileOutputStream(outputFile)) {
             convertToStream(document, fos);
         } catch (IOException e) {
@@ -46,12 +51,12 @@ public class XMindFormatConverter implements FormatConverter {
     }
     
     @Override
-    public void convert(OutlineDocument document, OutputStream outputStream) throws ConvertException {
+    public void convert(OutlineDocument document, OutputStream outputStream) {
         convertToStream(document, outputStream);
     }
     
     @Override
-    public byte[] convertToBytes(OutlineDocument document) throws ConvertException {
+    public byte[] convertToBytes(OutlineDocument document) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         convertToStream(document, baos);
         return baos.toByteArray();
@@ -75,7 +80,7 @@ public class XMindFormatConverter implements FormatConverter {
     /**
      * 转换为输出流
      */
-    private void convertToStream(OutlineDocument document, OutputStream outputStream) throws ConvertException {
+    private void convertToStream(OutlineDocument document, OutputStream outputStream) {
         try (ZipArchiveOutputStream zos = new ZipArchiveOutputStream(outputStream)) {
             zos.setEncoding(StandardCharsets.UTF_8.name());
             

@@ -1,10 +1,10 @@
 package dev.hc.convert.converter;
 
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.exception.ConvertException;
-
 import java.io.File;
 import java.io.OutputStream;
+
+import dev.hc.convert.exception.ConvertException;
+import dev.hc.convert.model.OutlineDocument;
 
 /**
  * 格式转换器接口
@@ -22,7 +22,7 @@ public interface FormatConverter {
      * @param outputFile 输出文件
      * @throws ConvertException 转换异常
      */
-    void convert(OutlineDocument document, File outputFile) throws ConvertException;
+    void convert(OutlineDocument document, File outputFile);
     
     /**
      * 将大纲文档转换并写入输出流
@@ -31,7 +31,7 @@ public interface FormatConverter {
      * @param outputStream 输出流
      * @throws ConvertException 转换异常
      */
-    void convert(OutlineDocument document, OutputStream outputStream) throws ConvertException;
+    void convert(OutlineDocument document, OutputStream outputStream);
     
     /**
      * 将大纲文档转换为字节数组
@@ -40,7 +40,7 @@ public interface FormatConverter {
      * @return 转换后的字节数组
      * @throws ConvertException 转换异常
      */
-    byte[] convertToBytes(OutlineDocument document) throws ConvertException;
+    byte[] convertToBytes(OutlineDocument document);
     
     /**
      * 获取输出格式名称

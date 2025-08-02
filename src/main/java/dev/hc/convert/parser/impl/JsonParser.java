@@ -1,7 +1,19 @@
 package dev.hc.convert.parser.impl;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import dev.hc.convert.FileType;
 import dev.hc.convert.constant.FileValid;
 import dev.hc.convert.constant.JsonSyntax;
@@ -10,16 +22,6 @@ import dev.hc.convert.exception.ParsingException;
 import dev.hc.convert.model.OutlineDocument;
 import dev.hc.convert.model.OutlineNode;
 import dev.hc.convert.parser.FileParser;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 
 /**
  * JSON格式解析器
@@ -37,7 +39,7 @@ public class JsonParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(File file) throws ParsingException {
+    public OutlineDocument parse(File file) {
         try {
             // 使用commons-lang3进行参数验证
             Validate.notNull(file, "Input file cannot be null");
@@ -64,7 +66,7 @@ public class JsonParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(InputStream inputStream, String filename) throws ParsingException {
+    public OutlineDocument parse(InputStream inputStream, String filename) {
         try {
             // 使用commons-lang3进行参数验证
             Validate.notNull(inputStream, "Input stream cannot be null");
@@ -82,19 +84,17 @@ public class JsonParser implements FileParser {
                 throw ConversionExceptionFactory.systemError("JSON stream too large (exceeds 50MB limit)", e);
             }
             throw ConversionExceptionFactory.parseError("Failed to read JSON stream: " + filename, e);
-        } catch (Exception e) {
+        } catch (ParsingException e) {
             throw ConversionExceptionFactory.parseError("Failed to parse JSON file: " + filename, e);
         }
     }
     
     @Override
-    public OutlineDocument parse(byte[] data, String filename) throws ParsingException {
+    public OutlineDocument parse(byte[] data, String filename) {
         try {
-            // 使用commons-lang3进行数据验证
             Validate.notNull(data, "Input data cannot be null");
             Validate.isTrue(data.length > 0, "Input data cannot be empty");
             
-            // 检查数据大小防止内存溢出
             Validate.isTrue(data.length <= FileValid.MAX_FILE_SIZE,
                 "JSON data too large: %d bytes (max: %d bytes)", data.length, FileValid.MAX_FILE_SIZE);
             
@@ -103,7 +103,7 @@ public class JsonParser implements FileParser {
             return parseJsonNode(rootNode);
         } catch (IllegalArgumentException e) {
             throw ConversionExceptionFactory.systemError("JSON data validation failed: " + e.getMessage(), e);
-        } catch (Exception e) {
+        } catch (ParsingException | IOException e) {
             throw ConversionExceptionFactory.parseError("Failed to parse JSON file: " + filename, e);
         }
     }
@@ -116,7 +116,7 @@ public class JsonParser implements FileParser {
     /**
      * 解析JSON节点为大纲文档
      */
-    private OutlineDocument parseJsonNode(JsonNode jsonNode) throws ParsingException {
+    private OutlineDocument parseJsonNode(JsonNode jsonNode) {
         OutlineDocument document = new OutlineDocument();
         document.setSourceFormat(FileType.JSON.getDisplayName());
         

@@ -1,28 +1,41 @@
 package dev.hc.convert.parser.impl;
 
-import com.vladsch.flexmark.ast.*;
-import com.vladsch.flexmark.parser.Parser;
-import com.vladsch.flexmark.util.ast.Document;
-import com.vladsch.flexmark.util.ast.Node;
-import com.vladsch.flexmark.util.data.MutableDataSet;
-import dev.hc.convert.FileType;
-import dev.hc.convert.constant.FileValid;
-import dev.hc.convert.constant.MarkdownSyntax;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ParsingException;
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.model.OutlineNode;
-import dev.hc.convert.parser.FileParser;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Stack;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
+
+import com.vladsch.flexmark.ast.BlockQuote;
+import com.vladsch.flexmark.ast.BulletList;
+import com.vladsch.flexmark.ast.BulletListItem;
+import com.vladsch.flexmark.ast.Code;
+import com.vladsch.flexmark.ast.Emphasis;
+import com.vladsch.flexmark.ast.FencedCodeBlock;
+import com.vladsch.flexmark.ast.Heading;
+import com.vladsch.flexmark.ast.Link;
+import com.vladsch.flexmark.ast.OrderedList;
+import com.vladsch.flexmark.ast.OrderedListItem;
+import com.vladsch.flexmark.ast.Paragraph;
+import com.vladsch.flexmark.ast.StrongEmphasis;
+import com.vladsch.flexmark.ast.Text;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.ast.Document;
+import com.vladsch.flexmark.util.ast.Node;
+import com.vladsch.flexmark.util.data.MutableDataSet;
+
+import dev.hc.convert.FileType;
+import dev.hc.convert.constant.FileValid;
+import dev.hc.convert.constant.MarkdownSyntax;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.model.OutlineDocument;
+import dev.hc.convert.model.OutlineNode;
+import dev.hc.convert.parser.FileParser;
 
 /**
  * Markdown格式解析器
@@ -46,7 +59,7 @@ public class MarkdownParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(File file) throws ParsingException {
+    public OutlineDocument parse(File file) {
         try {
             // 使用commons-lang3进行参数验证
             Validate.notNull(file, "Input file cannot be null");
@@ -72,7 +85,7 @@ public class MarkdownParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(InputStream inputStream, String filename) throws ParsingException {
+    public OutlineDocument parse(InputStream inputStream, String filename) {
         try {
             // 使用commons-lang3进行参数验证
             Validate.notNull(inputStream, "Input stream cannot be null");
@@ -95,7 +108,7 @@ public class MarkdownParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(byte[] data, String filename) throws ParsingException {
+    public OutlineDocument parse(byte[] data, String filename) {
         try {
             // 使用commons-lang3进行数据验证
             Validate.notNull(data, "Input data cannot be null");
@@ -122,7 +135,7 @@ public class MarkdownParser implements FileParser {
     /**
      * 解析Markdown内容
      */
-    private OutlineDocument parseMarkdownContent(String content) throws ParsingException {
+    private OutlineDocument parseMarkdownContent(String content) {
         try {
             Document document = PARSER.parse(content);
             return buildOutlineDocument(document);
@@ -274,8 +287,10 @@ public class MarkdownParser implements FileParser {
             }
         } else {
             // 递归处理子节点
-            for (Node child : node.getChildren()) {
-                extractTextRecursive(child, content);
+            if (node != null) {
+                for (Node child : node.getChildren()) {
+                    extractTextRecursive(child, content);
+                }
             }
         }
     }

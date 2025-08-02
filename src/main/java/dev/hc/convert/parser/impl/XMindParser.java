@@ -1,14 +1,13 @@
 package dev.hc.convert.parser.impl;
 
-import dev.hc.convert.FileType;
-import dev.hc.convert.constant.FileValid;
-import dev.hc.convert.constant.XMindSyntax;
-import dev.hc.convert.constant.XmlSafety;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ParsingException;
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.model.OutlineNode;
-import dev.hc.convert.parser.FileParser;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.io.FileUtils;
@@ -20,9 +19,14 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
+import dev.hc.convert.FileType;
+import dev.hc.convert.constant.FileValid;
+import dev.hc.convert.constant.XMindSyntax;
+import dev.hc.convert.constant.XmlSafety;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.model.OutlineDocument;
+import dev.hc.convert.model.OutlineNode;
+import dev.hc.convert.parser.FileParser;
 
 /**
  * XMind格式解析器
@@ -37,6 +41,7 @@ public class XMindParser implements FileParser {
      * 创建线程安全的SAXReader实例
      * 每次调用都创建新实例，避免线程安全问题
      */
+    @SuppressWarnings("UseSpecificCatch")
     private SAXReader createSAXReader() {
         SAXReader reader = new SAXReader();
         // 禁用外部实体解析，提高安全性
@@ -51,7 +56,7 @@ public class XMindParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(File file) throws ParsingException {
+    public OutlineDocument parse(File file) {
         try {
             // 使用commons-lang3进行参数验证
             Validate.notNull(file, "Input file cannot be null");
@@ -80,7 +85,7 @@ public class XMindParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(InputStream inputStream, String filename) throws ParsingException {
+    public OutlineDocument parse(InputStream inputStream, String filename) {
         try {
             // 使用commons-lang3进行参数验证
             Validate.notNull(inputStream, "Input stream cannot be null");
@@ -96,7 +101,7 @@ public class XMindParser implements FileParser {
     }
     
     @Override
-    public OutlineDocument parse(byte[] data, String filename) throws ParsingException {
+    public OutlineDocument parse(byte[] data, String filename) {
         try {
             // 使用commons-lang3进行数据验证
             Validate.notNull(data, "Input data cannot be null");
@@ -149,7 +154,7 @@ public class XMindParser implements FileParser {
     /**
      * 从输入流解析XMind文件
      */
-    private OutlineDocument parseFromInputStream(InputStream inputStream, String filename) throws ParsingException {
+    private OutlineDocument parseFromInputStream(InputStream inputStream, String filename) {
         try (ZipArchiveInputStream zis = new ZipArchiveInputStream(inputStream, StandardCharsets.UTF_8.name())) {
             
             Document contentDoc = null;
@@ -206,7 +211,7 @@ public class XMindParser implements FileParser {
     /**
      * 解析XMind内容
      */
-    private OutlineDocument parseXMindContent(Document contentDoc, Document metaDoc) throws ParsingException {
+    private OutlineDocument parseXMindContent(Document contentDoc, Document metaDoc) {
         
         OutlineDocument document = new OutlineDocument();
         document.setSourceFormat(FileType.XMIND.getDisplayName());
@@ -257,7 +262,7 @@ public class XMindParser implements FileParser {
     /**
      * 解析内容
      */
-    private void parseContent(Document contentDoc, OutlineDocument document) throws ParsingException {
+    private void parseContent(Document contentDoc, OutlineDocument document) {
         Element root = contentDoc.getRootElement();
         if (root == null) {
             throw ConversionExceptionFactory.invalidFileStructure("XMind content.xml root element is empty");

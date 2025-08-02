@@ -1,18 +1,19 @@
 package dev.hc.convert.converter.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import dev.hc.convert.converter.FormatConverter;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ConvertException;
-import dev.hc.convert.model.OutlineDocument;
-import dev.hc.convert.model.OutlineNode;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import dev.hc.convert.converter.FormatConverter;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.model.OutlineDocument;
+import dev.hc.convert.model.OutlineNode;
 
 /**
  * JSON格式转换器
@@ -32,7 +33,7 @@ public class JsonFormatConverter implements FormatConverter {
     }
     
     @Override
-    public void convert(OutlineDocument document, File outputFile) throws ConvertException {
+    public void convert(OutlineDocument document, File outputFile) {
         try {
             ObjectNode jsonDocument = convertToJsonNode(document);
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(outputFile, jsonDocument);
@@ -44,7 +45,7 @@ public class JsonFormatConverter implements FormatConverter {
     }
     
     @Override
-    public void convert(OutlineDocument document, OutputStream outputStream) throws ConvertException {
+    public void convert(OutlineDocument document, OutputStream outputStream) {
         try {
             ObjectNode jsonDocument = convertToJsonNode(document);
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonDocument);
@@ -56,11 +57,11 @@ public class JsonFormatConverter implements FormatConverter {
     }
     
     @Override
-    public byte[] convertToBytes(OutlineDocument document) throws ConvertException {
+    public byte[] convertToBytes(OutlineDocument document) {
         try {
             ObjectNode jsonDocument = convertToJsonNode(document);
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(jsonDocument);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             throw ConversionExceptionFactory.conversionFailed("Failed to convert to JSON", e);
         }
     }
