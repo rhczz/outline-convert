@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>示例大纲文档</title>
+        <dateCreated>Mon, 01 Aug 2025 00:00:00 GMT</dateCreated>
+        <dateModified>Mon, 01 Aug 2025 00:00:00 GMT</dateModified>
+        <ownerName>测试用户</ownerName>
+        <docs>https://example.com/outline-convert</docs>
+    </head>
+    <body>
+        <outline text="第一章" _note="第一章的内容描述">
+            <outline text="1.1 小节" _note="第一小节的详细内容">
+                <outline text="1.1.1 子小节" _note="子小节的内容"/>
+            </outline>
+            <outline text="1.2 小节" _note="第二小节的详细内容"/>
+        </outline>
+        <outline text="第二章" _note="第二章的内容描述">
+            <outline text="2.1 小节" _note="第二章第一小节的内容"/>
+        </outline>
+    </body>
+</opml>

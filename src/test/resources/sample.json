@@ -1,0 +1,50 @@
+{
+  "title": "示例大纲文档",
+  "description": "这是一个用于测试的JSON格式大纲文档",
+  "metadata": {
+    "author": "测试用户",
+    "version": "1.0",
+    "tags": ["测试", "示例"]
+  },
+  "rootNodes": [
+    {
+      "title": "第一章",
+      "content": "第一章的内容描述",
+      "level": 0,
+      "children": [
+        {
+          "title": "1.1 小节",
+          "content": "第一小节的详细内容",
+          "level": 1,
+          "children": [
+            {
+              "title": "1.1.1 子小节",
+              "content": "子小节的内容",
+              "level": 2,
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "1.2 小节",
+          "content": "第二小节的详细内容",
+          "level": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "title": "第二章",
+      "content": "第二章的内容描述",
+      "level": 0,
+      "children": [
+        {
+          "title": "2.1 小节",
+          "content": "第二章第一小节的内容",
+          "level": 1,
+          "children": []
+        }
+      ]
+    }
+  ]
+}

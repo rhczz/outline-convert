@@ -351,19 +351,19 @@ public final class ConvertEngine {
                 throw ConversionExceptionFactory.systemError("Stream validation failed: " + e.getMessage(), e);
             }
         }
-        
+
         private void validateData(byte[] data) {
             try {
                 // 使用commons-lang3进行数据验证
                 Validate.notNull(data, "Input data cannot be null");
                 Validate.isTrue(data.length > 0, "Input data cannot be empty");
-                
+
                 // 检查数据大小防止内存溢出
                 long maxSize = 50 * 1024 * 1024L; // 50MB内存限制
-                Validate.isTrue(data.length <= maxSize, 
-                    "Data too large: %d bytes (max: %d bytes)", data.length, maxSize);
-                
-            } catch (IllegalArgumentException e) {
+                Validate.isTrue(data.length <= maxSize,
+                        "Data too large: %d bytes (max: %d bytes)", data.length, maxSize);
+
+            } catch (IllegalArgumentException | NullPointerException e) {
                 throw ConversionExceptionFactory.systemError("Data validation failed: " + e.getMessage(), e);
             }
         }
