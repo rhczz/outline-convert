@@ -5,13 +5,22 @@ import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Document;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
+import dev.hc.convert.FileType;
+import dev.hc.convert.constant.FileValid;
+import dev.hc.convert.constant.MarkdownSyntax;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.exception.ParsingException;
 import dev.hc.convert.model.OutlineDocument;
 import dev.hc.convert.model.OutlineNode;
 import dev.hc.convert.parser.FileParser;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ParsingException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Stack;
 
@@ -23,7 +32,7 @@ import java.util.Stack;
  * @since 2025/8/1
  */
 public class MarkdownParser implements FileParser {
-    
+
     /**
      * 创建线程安全的Flexmark Parser实例
      * 根据Flexmark官方文档，Parser实例是线程安全的，
@@ -39,8 +48,22 @@ public class MarkdownParser implements FileParser {
     @Override
     public OutlineDocument parse(File file) throws ParsingException {
         try {
-            String content = readFileContent(file);
-            return parseMarkdownContent(content, file.getName());
+            // 使用commons-lang3进行参数验证
+            Validate.notNull(file, "Input file cannot be null");
+            Validate.isTrue(file.exists(), "File does not exist: %s", file);
+            Validate.isTrue(file.isFile(), "Path is not a file: %s", file.getAbsolutePath());
+            
+            // 检查文件大小，防止处理过大文件
+            long fileSize = FileUtils.sizeOf(file);
+            Validate.isTrue(fileSize <= FileValid.MAX_FILE_SIZE,
+                "Markdown file too large: %d bytes (max: %d bytes)", fileSize, FileValid.MAX_FILE_SIZE);
+            
+            // 使用commons-io安全读取文件
+            String content = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+
+            return parseMarkdownContent(content);
+        } catch (IllegalArgumentException e) {
+            throw ConversionExceptionFactory.systemError("Markdown file validation failed: " + e.getMessage(), e);
         } catch (IOException e) {
             throw ConversionExceptionFactory.fileReadError(file, e);
         } catch (Exception e) {
@@ -51,8 +74,21 @@ public class MarkdownParser implements FileParser {
     @Override
     public OutlineDocument parse(InputStream inputStream, String filename) throws ParsingException {
         try {
-            String content = readStreamContent(inputStream);
-            return parseMarkdownContent(content, filename);
+            // 使用commons-lang3进行参数验证
+            Validate.notNull(inputStream, "Input stream cannot be null");
+            
+            // 使用commons-io安全读取流内容，防止内存溢出
+            String content = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+            
+            // 验证内容长度
+            Validate.isTrue(content.length() <= FileValid.MAX_FILE_SIZE,
+                "Markdown content too large: %d characters (max: %d)", content.length(), FileValid.MAX_FILE_SIZE);
+
+            return parseMarkdownContent(content);
+        } catch (IllegalArgumentException e) {
+            throw ConversionExceptionFactory.systemError("Markdown stream validation failed: " + e.getMessage(), e);
+        } catch (IOException e) {
+            throw ConversionExceptionFactory.parseError("Failed to read Markdown stream: " + filename, e);
         } catch (Exception e) {
             throw ConversionExceptionFactory.parseError("Failed to parse Markdown file: " + filename, e);
         }
@@ -61,8 +97,18 @@ public class MarkdownParser implements FileParser {
     @Override
     public OutlineDocument parse(byte[] data, String filename) throws ParsingException {
         try {
+            // 使用commons-lang3进行数据验证
+            Validate.notNull(data, "Input data cannot be null");
+            Validate.isTrue(data.length > 0, "Input data cannot be empty");
+            
+            // 检查数据大小，防止内存溢出
+            Validate.isTrue(data.length <= FileValid.MAX_FILE_SIZE,
+                "Markdown data too large: %d bytes (max: %d bytes)", data.length, FileValid.MAX_FILE_SIZE);
+            
             String content = new String(data, StandardCharsets.UTF_8);
-            return parseMarkdownContent(content, filename);
+            return parseMarkdownContent(content);
+        } catch (IllegalArgumentException e) {
+            throw ConversionExceptionFactory.systemError("Markdown data validation failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw ConversionExceptionFactory.parseError("Failed to parse Markdown file: " + filename, e);
         }
@@ -70,16 +116,16 @@ public class MarkdownParser implements FileParser {
     
     @Override
     public String[] getSupportedExtensions() {
-        return new String[]{"md", "markdown"};
+        return FileType.MARKDOWN.getExtensions();
     }
     
     /**
      * 解析Markdown内容
      */
-    private OutlineDocument parseMarkdownContent(String content, String filename) throws ParsingException {
+    private OutlineDocument parseMarkdownContent(String content) throws ParsingException {
         try {
             Document document = PARSER.parse(content);
-            return buildOutlineDocument(document, filename);
+            return buildOutlineDocument(document);
         } catch (Exception e) {
             throw ConversionExceptionFactory.parseError("Failed to parse Markdown structure", e);
         }
@@ -88,9 +134,9 @@ public class MarkdownParser implements FileParser {
     /**
      * 构建大纲文档
      */
-    private OutlineDocument buildOutlineDocument(Document mdDocument, String filename) {
-        OutlineDocument outlineDoc = new OutlineDocument();
-        outlineDoc.setSourceFormat("Markdown");
+    private OutlineDocument buildOutlineDocument(Document mdDocument) {
+        OutlineDocument document = new OutlineDocument();
+        document.setSourceFormat(FileType.MARKDOWN.getDisplayName());
         
         // 使用栈来跟踪标题层级
         Stack<OutlineNode> nodeStack = new Stack<>();
@@ -102,10 +148,10 @@ public class MarkdownParser implements FileParser {
                 String title = extractTextContent(heading);
                 
                 OutlineNode headingNode = new OutlineNode(title);
-                headingNode.setAttribute("headingLevel", level);
+                headingNode.setAttribute(MarkdownSyntax.HEADING_LEVEL_ATTRIBUTE, level);
                 
                 // 根据层级调整节点关系
-                adjustNodeHierarchy(nodeStack, headingNode, level, outlineDoc);
+                adjustNodeHierarchy(nodeStack, headingNode, level, document);
                 currentNode = headingNode;
                 
             } else if (child instanceof Paragraph || child instanceof FencedCodeBlock || 
@@ -120,38 +166,37 @@ public class MarkdownParser implements FileParser {
                         if (existingContent == null || existingContent.isEmpty()) {
                             currentNode.setContent(content);
                         } else {
-                            currentNode.setContent(existingContent + "\n\n" + content);
+                            currentNode.setContent(existingContent + MarkdownSyntax.PARAGRAPH_BREAK + content);
                         }
                     } else {
                         // 没有标题时，创建默认节点
-                        OutlineNode contentNode = new OutlineNode("Content");
+                        OutlineNode contentNode = new OutlineNode(MarkdownSyntax.CONTENT_NODE_TITLE);
                         contentNode.setContent(content);
-                        outlineDoc.addRootNode(contentNode);
+                        document.addRootNode(contentNode);
                     }
                 }
             }
         }
         
         // 如果没有解析出任何节点，创建一个默认节点
-        if (outlineDoc.isEmpty()) {
+        if (document.isEmpty()) {
             String allContent = extractTextContent(mdDocument);
             if (!allContent.trim().isEmpty()) {
-                outlineDoc.addRootNode(new OutlineNode("Document", allContent));
+                document.addRootNode(new OutlineNode(MarkdownSyntax.DOCUMENT_NODE_TITLE, allContent));
             }
         }
         
-        return outlineDoc;
+        return document;
     }
     
     /**
      * 调整节点层级关系
      */
-    private void adjustNodeHierarchy(Stack<OutlineNode> nodeStack, OutlineNode newNode, 
-                                   int level, OutlineDocument document) {
+    private void adjustNodeHierarchy(Stack<OutlineNode> nodeStack, OutlineNode newNode, int level, OutlineDocument document) {
         // 清理栈中层级大于等于当前层级的节点
         while (!nodeStack.isEmpty()) {
             OutlineNode stackTop = nodeStack.peek();
-            Integer stackLevel = stackTop.getAttribute("headingLevel", 1);
+            Integer stackLevel = stackTop.getAttribute(MarkdownSyntax.HEADING_LEVEL_ATTRIBUTE, 1);
             if (stackLevel >= level) {
                 nodeStack.pop();
             } else {
@@ -177,7 +222,7 @@ public class MarkdownParser implements FileParser {
      */
     private String extractTextContent(Node node) {
         if (node == null) {
-            return "";
+            return StringUtils.EMPTY;
         }
         
         StringBuilder content = new StringBuilder();
@@ -190,28 +235,42 @@ public class MarkdownParser implements FileParser {
      */
     private void extractTextRecursive(Node node, StringBuilder content) {
         if (node instanceof Text) {
-            content.append(((Text) node).getChars());
+            content.append(node.getChars());
         } else if (node instanceof Code) {
-            content.append("`").append(((Code) node).getChars()).append("`");
+            content.append(MarkdownSyntax.INLINE_CODE)
+                    .append(node.getChars())
+                    .append(MarkdownSyntax.INLINE_CODE);
         } else if (node instanceof Emphasis) {
-            content.append("*").append(extractTextContent(node)).append("*");
+            content.append(MarkdownSyntax.EMPHASIS_ASTERISK)
+                    .append(extractTextContent(node))
+                    .append(MarkdownSyntax.EMPHASIS_ASTERISK);
         } else if (node instanceof StrongEmphasis) {
-            content.append("**").append(extractTextContent(node)).append("**");
+            content.append(MarkdownSyntax.STRONG_EMPHASIS_ASTERISK)
+                    .append(extractTextContent(node))
+                    .append(MarkdownSyntax.STRONG_EMPHASIS_ASTERISK);
         } else if (node instanceof Link link) {
-            content.append("[").append(extractTextContent(node)).append("](")
-                   .append(link.getUrl()).append(")");
+            content.append(MarkdownSyntax.LINK_TEXT_START)
+                    .append(extractTextContent(node))
+                    .append(MarkdownSyntax.LINK_TEXT_END)
+                   .append(MarkdownSyntax.LINK_URL_START)
+                    .append(link.getUrl())
+                    .append(MarkdownSyntax.LINK_URL_END);
         } else if (node instanceof FencedCodeBlock codeBlock) {
-            content.append("```");
+            content.append(MarkdownSyntax.CODE_BLOCK_BACKTICK);
             if (codeBlock.getInfo() != null && !codeBlock.getInfo().isEmpty()) {
                 content.append(codeBlock.getInfo());
             }
-            content.append("\n").append(codeBlock.getContentChars()).append("\n```");
+            content.append(MarkdownSyntax.NEWLINE)
+                    .append(codeBlock.getContentChars())
+                    .append(MarkdownSyntax.NEWLINE)
+                    .append(MarkdownSyntax.CODE_BLOCK_BACKTICK);
         } else if (node instanceof BulletList || node instanceof OrderedList) {
             handleListNode(node, content, 0);
         } else if (node instanceof BlockQuote) {
             String blockContent = extractTextContent(node);
             if (!blockContent.isEmpty()) {
-                content.append("> ").append(blockContent.replace("\n", "\n> "));
+                content.append(MarkdownSyntax.BLOCKQUOTE)
+                        .append(blockContent.replace(MarkdownSyntax.NEWLINE, MarkdownSyntax.NEWLINE + MarkdownSyntax.BLOCKQUOTE));
             }
         } else {
             // 递归处理子节点
@@ -231,13 +290,13 @@ public class MarkdownParser implements FileParser {
         for (Node child : listNode.getChildren()) {
             if (child instanceof BulletListItem || child instanceof OrderedListItem) {
                 // 添加缩进
-                content.append("  ".repeat(Math.max(0, indent)));
+                content.append((MarkdownSyntax.SPACE + MarkdownSyntax.SPACE).repeat(Math.max(0, indent)));
                 
                 // 添加列表标记
                 if (isOrdered) {
-                    content.append(itemIndex++).append(". ");
+                    content.append(itemIndex++).append(MarkdownSyntax.ORDERED_LIST_DOT);
                 } else {
-                    content.append("- ");
+                    content.append(MarkdownSyntax.UNORDERED_LIST_DASH);
                 }
                 
                 // 提取列表项内容
@@ -247,43 +306,14 @@ public class MarkdownParser implements FileParser {
                 // 处理嵌套列表
                 for (Node grandChild : child.getChildren()) {
                     if (grandChild instanceof BulletList || grandChild instanceof OrderedList) {
-                        content.append("\n");
+                        content.append(MarkdownSyntax.NEWLINE);
                         handleListNode(grandChild, content, indent + 1);
                     }
                 }
                 
-                content.append("\n");
+                content.append(MarkdownSyntax.NEWLINE);
             }
         }
     }
-    
-    /**
-     * 读取文件内容
-     */
-    private String readFileContent(File file) throws IOException {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            StringBuilder content = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                content.append(line).append("\n");
-            }
-            return content.toString();
-        }
-    }
-    
-    /**
-     * 读取流内容
-     */
-    private String readStreamContent(InputStream inputStream) throws IOException {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            StringBuilder content = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                content.append(line).append("\n");
-            }
-            return content.toString();
-        }
-    }
+
 }

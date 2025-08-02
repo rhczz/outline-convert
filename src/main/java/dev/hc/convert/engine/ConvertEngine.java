@@ -8,6 +8,10 @@ import dev.hc.convert.factory.ConverterFactory;
 import dev.hc.convert.factory.ParserFactory;
 import dev.hc.convert.model.OutlineDocument;
 import dev.hc.convert.parser.FileParser;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 
 import java.io.File;
 import java.io.IOException;
@@ -303,43 +307,85 @@ public final class ConvertEngine {
         }
 
         private void validateInputFile(File inputFile) {
-            if (inputFile == null) {
-                throw ConversionExceptionFactory.systemError("Input file cannot be null", null);
-            }
-            if (!inputFile.exists()) {
-                throw ConversionExceptionFactory.fileNotFound(inputFile);
-            }
-            if (!inputFile.isFile()) {
-                throw ConversionExceptionFactory.systemError("Input path is not a file: " + inputFile.getAbsolutePath(), null);
-            }
-            if (!inputFile.canRead()) {
-                throw ConversionExceptionFactory.fileReadError(inputFile, 
-                    new IOException("File is not readable"));
+            try {
+                // 使用commons-lang3进行强健的参数验证
+                Validate.notNull(inputFile, "Input file cannot be null");
+                Validate.isTrue(inputFile.exists(), "File does not exist: %s", inputFile);
+                Validate.isTrue(inputFile.isFile(), "Path is not a file: %s", inputFile.getAbsolutePath());
+                Validate.isTrue(inputFile.canRead(), "File is not readable: %s", inputFile.getAbsolutePath());
+                
+                // 检查文件大小（防止处理过大文件导致内存溢出）
+                long fileSize = FileUtils.sizeOf(inputFile);
+                long maxSize = 100 * 1024 * 1024L; // 100MB限制
+                Validate.isTrue(fileSize <= maxSize, 
+                    "File too large: %d bytes (max: %d bytes)", fileSize, maxSize);
+                
+                // 验证文件名安全性
+                String filename = inputFile.getName();
+                Validate.isTrue(StringUtils.isNotBlank(filename), "File name cannot be blank");
+                Validate.isTrue(!StringUtils.containsAny(filename, '\0', '\r', '\n'), 
+                    "File name contains invalid characters");
+                
+            } catch (IllegalArgumentException e) {
+                // 将Validate异常转换为我们的业务异常
+                throw ConversionExceptionFactory.systemError("File validation failed: " + e.getMessage(), e);
+            } catch (Exception e) {
+                // 处理FileUtils.sizeOf可能抛出的IOException等异常
+                throw ConversionExceptionFactory.fileReadError(inputFile, e);
             }
         }
         
         private void validateInputStream(InputStream inputStream) {
-            if (inputStream == null) {
-                throw ConversionExceptionFactory.systemError("Input stream cannot be null", null);
+            try {
+                // 使用commons-lang3进行输入流验证
+                Validate.notNull(inputStream, "Input stream cannot be null");
+                
+                // 检查输入流是否已关闭（通过available()方法）
+                try {
+                    inputStream.available();
+                } catch (IOException e) {
+                    throw ConversionExceptionFactory.systemError("Input stream is closed or invalid", e);
+                }
+                
+            } catch (IllegalArgumentException e) {
+                throw ConversionExceptionFactory.systemError("Stream validation failed: " + e.getMessage(), e);
             }
         }
         
         private void validateData(byte[] data) {
-            if (data == null || data.length == 0) {
-                throw ConversionExceptionFactory.systemError("Input data cannot be null", null);
+            try {
+                // 使用commons-lang3进行数据验证
+                Validate.notNull(data, "Input data cannot be null");
+                Validate.isTrue(data.length > 0, "Input data cannot be empty");
+                
+                // 检查数据大小防止内存溢出
+                long maxSize = 50 * 1024 * 1024L; // 50MB内存限制
+                Validate.isTrue(data.length <= maxSize, 
+                    "Data too large: %d bytes (max: %d bytes)", data.length, maxSize);
+                
+            } catch (IllegalArgumentException e) {
+                throw ConversionExceptionFactory.systemError("Data validation failed: " + e.getMessage(), e);
             }
         }
         
         private String getFileNameWithoutExtension(String filename) {
-            if (filename == null || filename.isEmpty()) {
+            try {
+                // 使用commons-lang3进行安全的字符串处理
+                String safeFilename = StringUtils.defaultIfBlank(filename, "untitled");
+                
+                // 清理文件名中的危险字符
+                safeFilename = StringUtils.replaceChars(safeFilename, "\0\r\n\t", "____");
+                
+                // 使用commons-io安全地获取不含扩展名的文件名
+                String baseName = FilenameUtils.getBaseName(safeFilename);
+                
+                // 确保结果不为空
+                return StringUtils.defaultIfBlank(baseName, "untitled");
+                
+            } catch (Exception e) {
+                // 如果处理失败，返回安全的默认值
                 return "untitled";
             }
-            
-            int lastDot = filename.lastIndexOf('.');
-            if (lastDot > 0) {
-                return filename.substring(0, lastDot);
-            }
-            return filename;
         }
     }
 }

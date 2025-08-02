@@ -2,13 +2,23 @@ package dev.hc.convert.parser.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.hc.convert.FileType;
+import dev.hc.convert.constant.FileValid;
+import dev.hc.convert.constant.JsonSyntax;
+import dev.hc.convert.exception.ConversionExceptionFactory;
+import dev.hc.convert.exception.ParsingException;
 import dev.hc.convert.model.OutlineDocument;
 import dev.hc.convert.model.OutlineNode;
 import dev.hc.convert.parser.FileParser;
-import dev.hc.convert.exception.ConversionExceptionFactory;
-import dev.hc.convert.exception.ParsingException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 /**
@@ -19,7 +29,7 @@ import java.util.Iterator;
  * @since 2025/8/1
  */
 public class JsonParser implements FileParser {
-    
+
     private final ObjectMapper objectMapper;
     
     public JsonParser() {
@@ -29,8 +39,23 @@ public class JsonParser implements FileParser {
     @Override
     public OutlineDocument parse(File file) throws ParsingException {
         try {
-            JsonNode rootNode = objectMapper.readTree(file);
-            return parseJsonNode(rootNode, file.getName());
+            // 使用commons-lang3进行参数验证
+            Validate.notNull(file, "Input file cannot be null");
+            Validate.isTrue(file.exists(), "File does not exist: %s", file);
+            Validate.isTrue(file.isFile(), "Path is not a file: %s", file.getAbsolutePath());
+            
+            // 使用commons-io安全读取文件，防止内存溢出
+            long fileSize = FileUtils.sizeOf(file);
+            Validate.isTrue(fileSize <= FileValid.MAX_FILE_SIZE,
+                "JSON file too large: %d bytes (max: %d bytes)", fileSize, FileValid.MAX_FILE_SIZE);
+            
+            // 安全读取文件内容
+            String jsonContent = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+            JsonNode rootNode = objectMapper.readTree(jsonContent);
+
+            return parseJsonNode(rootNode);
+        } catch (IllegalArgumentException e) {
+            throw ConversionExceptionFactory.systemError("JSON file validation failed: " + e.getMessage(), e);
         } catch (IOException e) {
             throw ConversionExceptionFactory.fileReadError(file, e);
         } catch (Exception e) {
@@ -41,8 +66,22 @@ public class JsonParser implements FileParser {
     @Override
     public OutlineDocument parse(InputStream inputStream, String filename) throws ParsingException {
         try {
-            JsonNode rootNode = objectMapper.readTree(inputStream);
-            return parseJsonNode(rootNode, filename);
+            // 使用commons-lang3进行参数验证
+            Validate.notNull(inputStream, "Input stream cannot be null");
+            
+            // 使用commons-io安全读取流内容，防止内存溢出
+            byte[] jsonData = IOUtils.toByteArray(inputStream, FileValid.MAX_FILE_SIZE);
+            
+            JsonNode rootNode = objectMapper.readTree(jsonData);
+
+            return parseJsonNode(rootNode);
+        } catch (IllegalArgumentException e) {
+            throw ConversionExceptionFactory.systemError("JSON stream validation failed: " + e.getMessage(), e);
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().contains("exceeds the maximum")) {
+                throw ConversionExceptionFactory.systemError("JSON stream too large (exceeds 50MB limit)", e);
+            }
+            throw ConversionExceptionFactory.parseError("Failed to read JSON stream: " + filename, e);
         } catch (Exception e) {
             throw ConversionExceptionFactory.parseError("Failed to parse JSON file: " + filename, e);
         }
@@ -51,8 +90,19 @@ public class JsonParser implements FileParser {
     @Override
     public OutlineDocument parse(byte[] data, String filename) throws ParsingException {
         try {
+            // 使用commons-lang3进行数据验证
+            Validate.notNull(data, "Input data cannot be null");
+            Validate.isTrue(data.length > 0, "Input data cannot be empty");
+            
+            // 检查数据大小防止内存溢出
+            Validate.isTrue(data.length <= FileValid.MAX_FILE_SIZE,
+                "JSON data too large: %d bytes (max: %d bytes)", data.length, FileValid.MAX_FILE_SIZE);
+            
             JsonNode rootNode = objectMapper.readTree(data);
-            return parseJsonNode(rootNode, filename);
+
+            return parseJsonNode(rootNode);
+        } catch (IllegalArgumentException e) {
+            throw ConversionExceptionFactory.systemError("JSON data validation failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw ConversionExceptionFactory.parseError("Failed to parse JSON file: " + filename, e);
         }
@@ -60,23 +110,23 @@ public class JsonParser implements FileParser {
     
     @Override
     public String[] getSupportedExtensions() {
-        return new String[]{"json"};
+        return FileType.JSON.getExtensions();
     }
     
     /**
      * 解析JSON节点为大纲文档
      */
-    private OutlineDocument parseJsonNode(JsonNode jsonNode, String filename) throws ParsingException {
+    private OutlineDocument parseJsonNode(JsonNode jsonNode) throws ParsingException {
         OutlineDocument document = new OutlineDocument();
-        document.setSourceFormat("JSON");
+        document.setSourceFormat(FileType.JSON.getDisplayName());
         
         try {
             if (jsonNode.isObject()) {
                 // 处理对象格式的JSON
-                parseObjectNode(jsonNode, document, filename);
+                parseObjectNode(jsonNode, document);
             } else if (jsonNode.isArray()) {
                 // 处理数组格式的JSON
-                parseArrayNode(jsonNode, document, filename);
+                parseArrayNode(jsonNode, document);
             } else {
                 // 简单值类型，创建单个节点
                 String title = jsonNode.isTextual() ? jsonNode.asText() : jsonNode.toString();
@@ -93,9 +143,9 @@ public class JsonParser implements FileParser {
     /**
      * 解析JSON对象节点
      */
-    private void parseObjectNode(JsonNode objectNode, OutlineDocument document, String filename) {
+    private void parseObjectNode(JsonNode objectNode, OutlineDocument document) {
         // 检查是否是标准的大纲文档格式
-        if (objectNode.has("title") || objectNode.has("rootNodes")) {
+        if (objectNode.has(JsonSyntax.TITLE_FIELD) || objectNode.has(JsonSyntax.ROOT_NODES_FIELD)) {
             parseDocumentFormat(objectNode, document);
         } else {
             // 通用对象格式，每个键值对作为一个节点
@@ -114,11 +164,11 @@ public class JsonParser implements FileParser {
     /**
      * 解析JSON数组节点
      */
-    private void parseArrayNode(JsonNode arrayNode, OutlineDocument document, String filename) {
+    private void parseArrayNode(JsonNode arrayNode, OutlineDocument document) {
         for (int i = 0; i < arrayNode.size(); i++) {
             JsonNode item = arrayNode.get(i);
             
-            OutlineNode node = new OutlineNode("Item " + (i + 1));
+            OutlineNode node = new OutlineNode(JsonSyntax.ARRAY_ITEM_PREFIX + (i + 1));
             parseNodeValue(item, node);
             document.addRootNode(node);
         }
@@ -129,15 +179,15 @@ public class JsonParser implements FileParser {
      */
     private void parseDocumentFormat(JsonNode docNode, OutlineDocument document) {
         // 解析文档基本信息
-        if (docNode.has("title")) {
-            document.setTitle(docNode.get("title").asText());
+        if (docNode.has(JsonSyntax.TITLE_FIELD)) {
+            document.setTitle(docNode.get(JsonSyntax.TITLE_FIELD).asText());
         }
-        if (docNode.has("description")) {
-            document.setDescription(docNode.get("description").asText());
+        if (docNode.has(JsonSyntax.DESCRIPTION_FIELD)) {
+            document.setDescription(docNode.get(JsonSyntax.DESCRIPTION_FIELD).asText());
         }
         
         // 解析根节点
-        JsonNode rootNodesArray = docNode.get("rootNodes");
+        JsonNode rootNodesArray = docNode.get(JsonSyntax.ROOT_NODES_FIELD);
         if (rootNodesArray != null && rootNodesArray.isArray()) {
             for (JsonNode nodeJson : rootNodesArray) {
                 OutlineNode node = parseOutlineNode(nodeJson);
@@ -156,14 +206,14 @@ public class JsonParser implements FileParser {
             return null;
         }
         
-        String title = nodeJson.has("title") ? nodeJson.get("title").asText() : "";
-        String content = nodeJson.has("content") ? nodeJson.get("content").asText() : null;
+        String title = nodeJson.has(JsonSyntax.TITLE_FIELD) ? nodeJson.get(JsonSyntax.TITLE_FIELD).asText() : StringUtils.EMPTY;
+        String content = nodeJson.has(JsonSyntax.CONTENT_FIELD) ? nodeJson.get(JsonSyntax.CONTENT_FIELD).asText() : null;
         
         OutlineNode node = new OutlineNode(title, content);
         
         // 解析属性
-        if (nodeJson.has("attributes")) {
-            JsonNode attributesNode = nodeJson.get("attributes");
+        if (nodeJson.has(JsonSyntax.ATTRIBUTES_FIELD)) {
+            JsonNode attributesNode = nodeJson.get(JsonSyntax.ATTRIBUTES_FIELD);
             if (attributesNode.isObject()) {
                 Iterator<String> fieldNames = attributesNode.fieldNames();
                 while (fieldNames.hasNext()) {
@@ -175,7 +225,7 @@ public class JsonParser implements FileParser {
         }
         
         // 解析子节点
-        JsonNode childrenNode = nodeJson.get("children");
+        JsonNode childrenNode = nodeJson.get(JsonSyntax.CHILDREN_FIELD);
         if (childrenNode != null && childrenNode.isArray()) {
             for (JsonNode childJson : childrenNode) {
                 OutlineNode child = parseOutlineNode(childJson);
@@ -207,7 +257,7 @@ public class JsonParser implements FileParser {
             // 数组类型，每个元素作为子节点
             for (int i = 0; i < valueNode.size(); i++) {
                 JsonNode item = valueNode.get(i);
-                OutlineNode childNode = new OutlineNode("Item " + (i + 1));
+                OutlineNode childNode = new OutlineNode(JsonSyntax.ARRAY_ITEM_PREFIX + (i + 1));
                 parseNodeValue(item, childNode);
                 parentNode.addChild(childNode);
             }

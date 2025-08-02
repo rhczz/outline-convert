@@ -31,6 +31,7 @@ public enum FileType {
     /** OPML文件类型 */
     OPML("opml", "text/x-opml", "OPML");
 
+    private static final String DEFAULT_FILENAME = "untitled";
     private final String defaultExtension;
     private final String mimeType;
     private final String displayName;
@@ -54,6 +55,11 @@ public enum FileType {
     /** 获取显示名称 */
     public String getDisplayName() {
         return displayName;
+    }
+
+    /** 获取默认文件名 */
+    public String getDefaultFileName() {
+        return DEFAULT_FILENAME + "." + getDefaultExtension();
     }
 
     /** 获取支持的文件扩展名（可被子类重写） */
