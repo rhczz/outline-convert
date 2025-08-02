@@ -8,11 +8,26 @@ import java.io.File;
  */
 public class ConversionExceptionFactory {
 
+    public static FileOperationException fileNameEmpty() {
+        return new FileOperationException(
+                ConversionErrorCode.FILE_NAME_EMPTY,
+                ConversionErrorCode.FILE_NAME_EMPTY.getMessageTemplate()
+        );
+    }
+
     /** 文件未找到异常 */
     public static FileOperationException fileNotFound(File file) {
         return new FileOperationException(
                 ConversionErrorCode.FILE_NOT_FOUND,
                 ConversionErrorCode.FILE_NOT_FOUND.formatMessage(file.getAbsolutePath())
+        );
+    }
+
+    /** File is null */
+    public static FileOperationException fileIsNull() {
+        return new FileOperationException(
+                ConversionErrorCode.FILE_READ_ERROR,
+                ConversionErrorCode.FILE_READ_ERROR.formatMessage("File is null")
         );
     }
 

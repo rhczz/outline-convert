@@ -1,68 +1,157 @@
 package dev.hc.convert;
 
-import dev.hc.convert.converter.*;
-import dev.hc.convert.exception.ConversionFailureException;
+import dev.hc.convert.engine.ConvertEngine;
+import dev.hc.convert.exception.ConversionExceptionFactory;
 
 import java.io.File;
 
 /**
+ * 文件类型枚举
+ * 支持的文件格式定义和相关操作
+ * 
  * @author Leo
  * @since 2025/8/1 19:18
  */
 public enum FileType {
 
-    /** json 文件类型 */
-    JSON(new JsonConverter()),
+    /** JSON 文件类型 */
+    JSON("json", "application/json", "JSON"),
 
-    /** md文件类型 */
-    MARKDOWN(new MarkdownConverter()),
+    /** Markdown文件类型 */
+    MARKDOWN("md", "text/markdown", "Markdown") {
+        @Override
+        public String[] getExtensions() {
+            return new String[]{"md", "markdown"};
+        }
+    },
 
-    /** xmind文件类型 */
-    XMIND(new XMindConverter()),
+    /** XMind文件类型 */
+    XMIND("xmind", "application/xmind", "XMind"),
 
-    /** opml文件类型 */
-    OPML(new OpmlConverter());
+    /** OPML文件类型 */
+    OPML("opml", "text/x-opml", "OPML");
 
-    private final FileConverter fileConverter;
+    private final String defaultExtension;
+    private final String mimeType;
+    private final String displayName;
 
-    FileType(final FileConverter fileConverter) {
-        this.fileConverter = fileConverter;
+    FileType(String defaultExtension, String mimeType, String displayName) {
+        this.defaultExtension = defaultExtension;
+        this.mimeType = mimeType;
+        this.displayName = displayName;
+    }
+
+    /** 获取默认文件扩展名 */
+    public String getDefaultExtension() {
+        return defaultExtension;
+    }
+
+    /** 获取MIME类型 */
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    /** 获取显示名称 */
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    /** 获取支持的文件扩展名（可被子类重写） */
+    public String[] getExtensions() {
+        return new String[]{defaultExtension};
+    }
+
+    /** 检查是否支持指定的文件扩展名 */
+    public boolean supportsExtension(String extension) {
+        if (extension == null) {
+            return false;
+        }
+        
+        String ext = extension.toLowerCase();
+        if (ext.startsWith(".")) {
+            ext = ext.substring(1);
+        }
+        
+        for (String supportedExt : getExtensions()) {
+            if (supportedExt.equalsIgnoreCase(ext)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * Convert file to json
-     * @param file input file
-     * @return json file
+     * 从文件推断文件类型
      */
-    public File toJson(File file) throws ConversionFailureException {
-        return fileConverter.toJson(file, this);
+    public static FileType fromFile(File file) {
+        if (file == null) {
+            throw ConversionExceptionFactory.fileIsNull();
+        }
+        if (!file.exists()) {
+            throw ConversionExceptionFactory.fileNotFound(file);
+        }
+        return fromFilename(file.getName());
     }
 
     /**
-     * Convert file to markdown
-     * @param jsonFile input json file
-     * @return markdown file
+     * 从文件名推断文件类型
      */
-    public File toMd(File jsonFile) throws ConversionFailureException {
-        return fileConverter.toMarkdown(jsonFile, this);
+    public static FileType fromFilename(String filename) {
+        if (filename == null || filename.trim().isEmpty()) {
+            throw ConversionExceptionFactory.fileNameEmpty();
+        }
+
+        String name = filename.toLowerCase();
+        for (FileType type : values()) {
+            for (String ext : type.getExtensions()) {
+                if (name.endsWith("." + ext.toLowerCase())) {
+                    return type;
+                }
+            }
+        }
+        
+        throw ConversionExceptionFactory.unsupportedFileFormat(filename);
     }
 
     /**
-     * Convert file to xmind
-     * @param jsonFile input json file
-     * @return xmind file
+     * 创建转换引擎，支持链式调用
+     * 
+     * @return 转换引擎构建器
      */
-    public File toXmind(File jsonFile) throws ConversionFailureException {
-        return fileConverter.toXMind(jsonFile, this);
+    public ConvertEngine.Builder to(FileType targetType) {
+        return ConvertEngine.from(this).to(targetType);
     }
 
     /**
-     * Convert file to opml
-     * @param jsonFile input json file
-     * @return opml file
+     * 转换为JSON格式
      */
-    public File toOpml(File jsonFile) throws ConversionFailureException {
-        return fileConverter.toOpml(jsonFile, this);
+    public ConvertEngine.Builder toJson() {
+        return to(JSON);
     }
 
+    /**
+     * 转换为Markdown格式
+     */
+    public ConvertEngine.Builder toMarkdown() {
+        return to(MARKDOWN);
+    }
+
+    /**
+     * 转换为XMind格式
+     */
+    public ConvertEngine.Builder toXMind() {
+        return to(XMIND);
+    }
+
+    /**
+     * 转换为OPML格式
+     */
+    public ConvertEngine.Builder toOpml() {
+        return to(OPML);
+    }
+
+    @Override
+    public String toString() {
+        return displayName + " (*." + defaultExtension + ")";
+    }
 }
