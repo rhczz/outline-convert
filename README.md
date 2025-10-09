@@ -15,14 +15,13 @@
 
 ## ✨ 特性
 
-- **🚀 高性能**: 懒加载设计，只在需要时创建转换器实例，采用ConcurrentHashMap缓存优化
-- **🎯 易用性**: 流畅的API设计，支持链式调用，自动文件类型检测
-- **📤 多输出**: 支持文件、输出流、字节数组三种输出方式，满足不同场景需求
-- **🔧 扩展性**: 基于工厂模式和接口设计，易于添加新格式支持
-- **🛡️ 健壮性**: 完善的异常处理机制，文件大小限制，安全验证
-- **⚡ 轻量级**: 核心库体积小，依赖精简，启动快速
-- **🔒 线程安全**: 全面的并发安全设计，支持多线程环境使用
-- **🧪 测试完备**: 200+测试用例，80%+覆盖率，企业级测试质量保障
+- **高性能**: 懒加载设计，只在需要时创建转换器实例，采用ConcurrentHashMap缓存优化
+- **易用性**: 流畅的API设计，支持链式调用，自动文件类型检测
+- **多输出**: 支持文件、输出流、字节数组三种输出方式，满足不同场景需求
+- **扩展性**: 基于工厂模式和接口设计，易于添加新格式支持
+- **健壮性**: 完善的异常处理机制，文件大小限制，安全验证
+- **轻量级**: 核心库体积小，依赖精简，启动快速
+- **线程安全**: 全面的并发安全设计，支持多线程环境使用
 
 ## 📋 支持格式
 
@@ -329,7 +328,7 @@ new OutlineNode(String title, String content)  // 带标题和内容节点
 
 ### 并发使用
 ```java
-// ✅ 安全：不同线程可以并发使用同一个转换引擎
+// 安全：不同线程可以并发使用同一个转换引擎
 ExecutorService executor = Executors.newFixedThreadPool(10);
 for (File file : files) {
     executor.submit(() -> {
@@ -339,11 +338,11 @@ for (File file : files) {
     });
 }
 
-// ✅ 安全：工厂方法线程安全
+// 安全：工厂方法线程安全
 FileParser parser1 = ParserFactory.getParser(FileType.MARKDOWN); // 线程1
 FileParser parser2 = ParserFactory.getParser(FileType.MARKDOWN); // 线程2 (返回相同实例)
 
-// ✅ 安全：数据模型不会在转换过程中被修改
+// 安全：数据模型不会在转换过程中被修改
 OutlineDocument doc = parser.parse(file);
 // doc 对象在多线程环境下只读访问是安全的
 ```
@@ -436,16 +435,7 @@ mvn clean verify
 - 添加适当的注释和文档
 - **编写完整的单元测试** ⭐
 - 确保线程安全性
-- **测试覆盖率不低于70%** ⭐
 
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 🙏 致谢
-
-感谢以下开源项目的支持：
-- [FlexMark](https://github.com/vsch/flexmark-java) - Markdown处理
-- [Jackson](https://github.com/FasterXML/jackson) - JSON处理
-- [DOM4J](https://github.com/dom4j/dom4j) - XML处理
-- [Apache Commons](https://commons.apache.org/) - 工具库集合
