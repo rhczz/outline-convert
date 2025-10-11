@@ -4,13 +4,6 @@
 [![Maven](https://img.shields.io/badge/Maven-3.6+-blue.svg)](https://maven.apache.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[![Tests](https://img.shields.io/badge/Tests-200%2B%20Passing-brightgreen.svg)](#testing)
-[![Coverage](https://img.shields.io/badge/Coverage-80%25%2B-green.svg)](#test-coverage)
-[![Quality](https://img.shields.io/badge/Code%20Quality-A+-blue.svg)](#code-quality)
-[![Build](https://img.shields.io/badge/Build-Passing-success.svg)](#build-status)
-[![Test Framework](https://img.shields.io/badge/JUnit-5.10.1-blue.svg)](https://junit.org/junit5/)
-[![Test Categories](https://img.shields.io/badge/Test%20Categories-Unit%20%7C%20Integration%20%7C%20Performance-informational.svg)](#test-categories)
-
 一个高性能、线程安全的大纲格式转换工具，支持多种常见大纲格式之间的相互转换。基于现代Java设计模式，提供简洁流畅的API接口。
 
 ## ✨ 特性
@@ -118,23 +111,6 @@ outline-convert/
 ```
 输入文件 → FileParser → OutlineDocument → FormatConverter → 输出文件
 ```
-
-## 📊 性能特性
-
-### 内存管理
-- **文件大小限制**: 单个文件最大100MB，ZIP条目最大50MB
-- **懒加载设计**: 解析器和转换器实例按需创建和缓存
-- **流式处理**: 支持输入流和输出流，减少内存占用
-
-### 并发性能
-- **线程安全**: 使用`ConcurrentHashMap`缓存，支持高并发访问
-- **无状态设计**: 核心组件无状态，避免并发冲突
-- **实例复用**: 缓存机制减少对象创建开销
-
-### 安全特性
-- **XML安全**: 禁用外部实体解析，防止XXE攻击
-- **输入验证**: 文件名、大小、格式严格验证
-- **异常隔离**: 完善的异常处理，不会因单个文件错误影响整体
 
 ## 🔧 扩展新格式
 
@@ -326,115 +302,10 @@ new OutlineNode(String title, String content)  // 带标题和内容节点
 - **不可变对象**: 数据模型类采用不可变设计，避免并发修改
 - **线程安全缓存**: 使用`ConcurrentHashMap`实现线程安全的实例缓存
 
-### 并发使用
-```java
-// 安全：不同线程可以并发使用同一个转换引擎
-ExecutorService executor = Executors.newFixedThreadPool(10);
-for (File file : files) {
-    executor.submit(() -> {
-        ConvertEngine.from(file)
-                    .toJson()
-                    .convert(file);
-    });
-}
-
-// 安全：工厂方法线程安全
-FileParser parser1 = ParserFactory.getParser(FileType.MARKDOWN); // 线程1
-FileParser parser2 = ParserFactory.getParser(FileType.MARKDOWN); // 线程2 (返回相同实例)
-
-// 安全：数据模型不会在转换过程中被修改
-OutlineDocument doc = parser.parse(file);
-// doc 对象在多线程环境下只读访问是安全的
-```
-
-### 注意事项
-- 数据模型对象(`OutlineDocument`, `OutlineNode`)创建后不应在多线程间共享修改
-- 自定义扩展时需要确保实现类的线程安全性
-
-## 🛠️ 构建和部署
-
-### 本地构建
-```bash
-# 克隆项目
-git clone https://github.com/yourusername/outline-convert.git
-cd outline-convert
-
-# 编译项目
-mvn clean compile
-
-# 运行测试
-mvn test
-
-# 打包
-mvn clean package
-```
-
-### 系统要求
+## 系统要求
 - **Java**: 21+（使用了现代Java特性如switch表达式、文本块等）
 - **Maven**: 3.6+
 - **内存**: 建议512MB以上堆内存（处理大文件时）
-
-### 依赖说明
-- **FlexMark**: Markdown解析和渲染
-- **Jackson**: JSON序列化和反序列化  
-- **DOM4J**: XML文档解析
-- **Apache Commons**: IO操作、字符串处理、压缩处理
-- **SLF4J**: 日志框架
-
-## 🧪 测试
-
-### Testing
-本项目具备完善的测试覆盖，确保代码质量和稳定性。
-
-#### 测试统计
-- **200+ 测试方法** 覆盖所有核心功能
-- **14 个测试类** 包含单元测试和集成测试
-- **企业级测试质量** 包含边界条件、异常处理、并发安全性测试
-
-#### Test Coverage  
-- **行覆盖率**: ≥ 80%
-- **分支覆盖率**: ≥ 75%
-- **类覆盖率**: ≥ 70%
-
-#### Code Quality
-- **静态代码分析**: SpotBugs 检查通过
-- **代码规范**: 遵循 Java 最佳实践
-- **内存安全**: 通过内存使用测试
-- **线程安全**: 通过并发测试验证
-
-#### Build Status
-```bash
-# 运行所有测试
-mvn test
-
-# 运行集成测试
-mvn integration-test  
-
-# 生成覆盖率报告
-mvn clean verify
-```
-
-#### Test Categories
-- **单元测试**: 核心组件功能测试
-- **集成测试**: 端到端工作流测试  
-- **性能测试**: API响应时间和内存使用测试
-- **并发测试**: 多线程环境安全测试
-
-详细测试信息请参阅 [README-TESTING.md](README-TESTING.md)
-
-## 🤝 贡献指南
-
-1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
-
-### 代码规范
-- 遵循Java命名约定
-- 添加适当的注释和文档
-- **编写完整的单元测试** ⭐
-- 确保线程安全性
 
 ## 📄 许可证
 
